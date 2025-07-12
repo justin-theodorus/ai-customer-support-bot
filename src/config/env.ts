@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { Logger } from "@/utils/logger";
 
+// Load environment variables from .env.local (for scripts)
+if (typeof window === "undefined") {
+  require("dotenv").config({ path: ".env.local" });
+}
+
 const logger = new Logger("Config:Env");
 
 // Schema for environment variables
