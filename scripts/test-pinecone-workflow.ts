@@ -223,7 +223,7 @@ async function main() {
     // Test 6: Category Search
     await runTest('Category Search', async () => {
       let category = 'Payments';
-      let query = 'payment';
+      const query = 'payment';
       
       if (useRealData) {
         // Get available categories first
