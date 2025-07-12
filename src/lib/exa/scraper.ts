@@ -14,12 +14,11 @@ export class AvenScraper {
     try {
       logger.info("Starting Aven support page scraping...");
 
-      // Get raw text content from EXA (structured extraction is failing)
+      // Get raw text content from EXA
       const result = await exaClient.getContents(
         [this.AVEN_SUPPORT_URL],
         {
           text: true,
-          // Remove the summary/schema since it's not working properly
         }
       );
 
