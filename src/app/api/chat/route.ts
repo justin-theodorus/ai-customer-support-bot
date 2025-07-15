@@ -93,12 +93,22 @@ export async function POST(request: NextRequest) {
           }
         );
 
+        // NEW: Log the details of the chunks returned from Pinecone
+        logger.info('Semantic search results retrieved', {
+          resultsCount: searchResponse.results.length,
+          returnedChunks: searchResponse.results.map(r => ({
+              id: r.id,
+              score: r.score,
+              question: r.metadata?.question,
+          })),
+        });
+
         searchResults = searchResponse;
 
         if (searchResponse.results.length > 0) {
           // Build context from search results
           const contextParts = searchResponse.results.map((result, index) => {
-            const text = result.metadata?.chunk_text || '';
+            const text = result.metadata?.original_text || result.metadata?.chunk_text || '';
             const category = result.metadata?.category || 'General';
             const score = result.score?.toFixed(3) || '0.000';
             
@@ -107,7 +117,7 @@ export async function POST(request: NextRequest) {
 
           context = contextParts.join('\n\n').substring(0, MAX_CONTEXT_LENGTH);
           
-          logger.info('Context retrieved', {
+          logger.info('Context prepared for LLM', {
             resultsCount: searchResponse.results.length,
             contextLength: context.length,
           });
@@ -120,6 +130,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ... (The rest of your function remains the same)
+    
     // Prepare messages for OpenAI
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
       {
@@ -128,12 +140,10 @@ export async function POST(request: NextRequest) {
           ? `${SYSTEM_PROMPT}\n\nRelevant context from Aven's knowledge base:\n\n${context}`
           : SYSTEM_PROMPT,
       },
-      // Add conversation history
       ...conversation.map(msg => ({
         role: msg.role as 'user' | 'assistant',
         content: msg.content,
       })),
-      // Add current user message
       {
         role: 'user' as const,
         content: message,
@@ -146,7 +156,6 @@ export async function POST(request: NextRequest) {
       temperature,
     });
 
-    // Generate response using OpenAI
     const startTime = Date.now();
     const completion = await openai.chat.completions.create({
       model,

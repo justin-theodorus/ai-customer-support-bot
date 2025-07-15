@@ -12,10 +12,10 @@ export class PineconeSearch {
     this.client = PineconeClient.getInstance();
   }
 
-  /**
-   * Semantic search using integrated embeddings
+   /**
+   * Semantic search with Pinecone's built-in reranking using searchRecords.
    */
-  async semanticSearch(
+   async semanticSearch(
     indexName: string,
     query: string,
     config: SearchConfig = {}
@@ -23,26 +23,34 @@ export class PineconeSearch {
     const startTime = Date.now();
 
     try {
-      console.log(`Performing semantic search on index ${indexName}`);
-
+      console.log(`Performing semantic search with reranking on index ${indexName}`);
       const index = this.client.getIndex(indexName, config.namespace);
       
-      // Use searchRecords with integrated embeddings - Pinecone handles embedding generation
+      const topK = config.topK || 10;
+      
       const queryResponse = await index.searchRecords({
         query: {
-          topK: config.topK || 10,
-          inputs: { text: query }, // Correct structure for integrated embeddings
+          // Best practice: Fetch more candidates for the reranker to work with.
+          topK: Math.min(topK * 5, 100),
+          inputs: { text: query },
           filter: config.filter,
+        },
+        rerank: {
+          model: 'bge-reranker-v2-m3',
+          // Return the number of results you originally wanted.
+          topN: topK, 
+          // Use the metadata field containing the full text for best results.
+          rankFields: ['original_text'], 
         },
       });
 
-      // Type assertion to work around TypeScript definition issues
+      // FIX 1: The response from `searchRecords` is in `queryResponse.result.hits`
       const hits = queryResponse.result.hits as any[];
       const results: SearchResult[] = hits?.map((hit: any) => ({
         id: hit.id,
-        score: hit.score || 0,
-        metadata: hit.fields, // For searchRecords, metadata is in 'fields'
-        values: undefined, // searchRecords doesn't return values
+        score: hit.score || 0, // The score from the reranker will be here
+        // FIX 2: Metadata from `searchRecords` is in the `fields` property
+        metadata: hit.fields, 
       })) || [];
 
       return {
@@ -58,6 +66,8 @@ export class PineconeSearch {
     }
   }
 
+  // The methods below are now simpler as they just call the powerful semanticSearch.
+  
   /**
    * Category-based search
    */
@@ -73,7 +83,6 @@ export class PineconeSearch {
         ...config.filter,
       },
     };
-
     return this.semanticSearch(indexName, query, searchConfig);
   }
 
@@ -93,7 +102,6 @@ export class PineconeSearch {
         ...config.filter,
       },
     };
-
     return this.semanticSearch(indexName, query, searchConfig);
   }
 
@@ -145,32 +153,7 @@ export class PineconeSearch {
     }
   }
 
-  /**
-   * Search with reranking (simulated)
-   */
-  async searchWithReranking(
-    indexName: string,
-    query: string,
-    config: SearchConfig = {}
-  ): Promise<SearchResponse> {
-    // Get initial results
-    const initialResults = await this.semanticSearch(indexName, query, {
-      ...config,
-      topK: Math.min((config.topK || 10) * 2, 100), // Get more results for reranking
-    });
-
-    // Simulate reranking by scoring based on query match
-    const rerankedResults = this.simulateReranking(initialResults.results, query);
-
-    // Return top results after reranking
-    const finalResults = rerankedResults.slice(0, config.topK || 10);
-
-    return {
-      ...initialResults,
-      results: finalResults,
-      totalResults: finalResults.length,
-    };
-  }
+  
 
   /**
    * Get all categories in the index
@@ -232,37 +215,7 @@ export class PineconeSearch {
     }
   }
 
-  /**
-   * Simulate reranking by scoring text similarity
-   */
-  private simulateReranking(results: SearchResult[], query: string): SearchResult[] {
-    const queryLower = query.toLowerCase();
-    
-    return results
-      .map(result => {
-        const text = (result.metadata?.chunk_text as string)?.toLowerCase() || '';
-        
-        // Simple scoring based on keyword matches
-        const queryWords = queryLower.split(/\s+/).filter(word => word.length > 2);
-        const textWords = text.split(/\s+/);
-        
-        let keywordScore = 0;
-        queryWords.forEach(queryWord => {
-          if (textWords.some(textWord => textWord.includes(queryWord))) {
-            keywordScore += 1;
-          }
-        });
-        
-        // Combine semantic score with keyword score
-        const combinedScore = (result.score * 0.7) + (keywordScore * 0.3);
-        
-        return {
-          ...result,
-          score: combinedScore,
-        };
-      })
-      .sort((a, b) => b.score - a.score);
-  }
+  
 }
 
 export default PineconeSearch; 

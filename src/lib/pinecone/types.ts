@@ -4,20 +4,24 @@
  */
 
 // Record format for Pinecone integrated embeddings
-export interface UpsertRecord {
+export type UpsertRecord = {
   id: string;
-  chunk_text: string;
-  category: string;
-  source?: string;
-  timestamp?: string;
-  [key: string]: any; // Additional metadata
-}
+  chunk_text: string; // The field name must match the 'textField' in your index config
+  
+    category: string;
+    question: string;
+    source?: string;
+    timestamp: string;
+    original_text: string;
+  
+};
 
 // FAQ record structure from scraped data
 export interface FAQRecord {
   _id: string;
   chunk_text: string;
   category: string;
+  question: string;
   source?: string;
   timestamp?: string;
 }

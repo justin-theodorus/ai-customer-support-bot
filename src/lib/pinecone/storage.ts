@@ -120,18 +120,24 @@ export class PineconeStorage {
     }
   }
 
-  /**
-   * Convert FAQ records to upsert format
+/**
+   * Converts FAQ records to the flat object format required for integrated embedding upserts.
    */
-  convertFaqsToUpsertRecords(faqs: FAQRecord[]): UpsertRecord[] {
-    return faqs.map(faq => ({
+convertFaqsToUpsertRecords(faqs: FAQRecord[]): UpsertRecord[] {
+  return faqs.map(faq => {
+    // For this specific API, all fields are at the top level.
+    // Pinecone will identify 'id' and 'chunk_text' and treat the rest as metadata.
+    return {
       id: faq._id,
       chunk_text: faq.chunk_text,
       category: faq.category,
+      question: faq.question,
       source: faq.source,
       timestamp: faq.timestamp || new Date().toISOString(),
-    }));
-  }
+      original_text: faq.chunk_text
+    };
+  });
+}
 
   /**
    * Delete records by IDs

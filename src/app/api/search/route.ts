@@ -141,9 +141,13 @@ export async function POST(request: NextRequest) {
 
     logger.info('Search completed', {
       resultsCount: result.results.length,
+      returnedChunks: result.results.map(r => ({ // Map over the results array
+          id: r.id,
+          score: r.score,
+          question: r.metadata?.question,
+      })),
       processingTime: result.processingTime,
       indexName: finalIndexName,
-      namespace: finalNamespace,
     });
 
     return NextResponse.json({

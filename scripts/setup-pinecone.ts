@@ -41,7 +41,7 @@ async function main() {
     .option('-d, --data-file <file>', 'Path to FAQ data file')
     .option('-i, --index-name <name>', 'Index name to create/use', DEFAULT_CONFIG.name)
     .option('-m, --model <model>', 'Embedding model to use', DEFAULT_CONFIG.model)
-    .option('-b, --batch-size <size>', 'Batch size for uploads', '100')
+    .option('-b, --batch-size <size>', 'Batch size for uploads', '90')
     .option('--dry-run', 'Preview what would be done without making changes')
     .option('--help-advanced', 'Show advanced usage examples')
     .parse(process.argv);
@@ -274,7 +274,8 @@ function showAdvancedHelp() {
   console.log('      {');
   console.log('        "_id": "unique-id",');
   console.log('        "chunk_text": "FAQ content text",');
-  console.log('        "category": "Category Name"');
+  console.log('        "category": "Category Name",');
+  console.log('        "question": "Question Text"');
   console.log('      }');
   console.log('    ]');
   console.log('  }');

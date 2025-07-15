@@ -34,6 +34,7 @@ export interface ScrapedFAQItem {
   _id: string;
   chunk_text: string;
   category: string;
+  question: string;
 }
 
 export interface AvenSupportData {

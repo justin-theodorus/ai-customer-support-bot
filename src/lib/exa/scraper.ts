@@ -10,7 +10,7 @@ export class AvenScraper {
   /**
    * Scrape the Aven support page and extract FAQ content
    */
-  async scrapeAvenSupport(): Promise<AvenSupportData> {
+  async scrapeAvenSupport(saveRawResult: boolean = true, saveProcessedResult: boolean = true): Promise<AvenSupportData> {
     try {
       logger.info("Starting Aven support page scraping...");
 
@@ -21,6 +21,11 @@ export class AvenScraper {
           text: true,
         }
       );
+
+      // Save raw EXA result before processing (if enabled)
+      if (saveRawResult) {
+        await this.saveRawExaResult(result);
+      }
 
       if (!result || !result.results || result.results.length === 0) {
         throw new Error("No content retrieved from Aven support page");
@@ -55,6 +60,11 @@ export class AvenScraper {
       const categoryStats = this.getCategoryStats(validatedFAQs);
       logger.info("Category distribution:", categoryStats);
 
+      // Save processed data (if enabled)
+      if (saveProcessedResult) {
+        await this.saveScrapedData(scrapedData);
+      }
+
       return scrapedData;
 
     } catch (error) {
@@ -63,17 +73,21 @@ export class AvenScraper {
     }
   }
 
-  /**
-   * Process raw text content to extract FAQ data
+/**
+   * Process raw text content to extract FAQ data structured for Pinecone.
    */
-  private processRawTextContent(text: string): Array<{_id: string, chunk_text: string, category: AvenCategory}> {
-    const faqs: Array<{_id: string, chunk_text: string, category: AvenCategory}> = [];
-    
-    // Category mapping based on the sections in the Aven support page
+  private processRawTextContent(text: string): Array<{_id: string, chunk_text: string, category: AvenCategory, question: string}> {
+    const mainContent = text.split(/## How can we help\?/i)[1] ?? '';
+    const cleanText = mainContent
+      .replace(/SHOW MORE/g, '')
+      .replace(/!\[.*?\]\(.*?\)/g, '')
+      .replace(/\[iframe\].*?(\n|$)/g, '');
+
+    const faqs: Array<{_id: string, chunk_text: string, category: AvenCategory, question: string}> = [];
     const categoryMappings: Record<string, AvenCategory> = {
       "Trending Articles": "Trending Articles",
       "Payments": "Payments",
-      "Before You Apply": "Before You Apply", 
+      "Before You Apply": "Before You Apply",
       "Offer, Rates & Fees": "Offer, Rates, & Fees",
       "Application": "Application",
       "Account": "Account",
@@ -81,126 +95,100 @@ export class AvenScraper {
       "Debt Protection": "Debt Protection"
     };
 
-    // Split text by category sections
-    const categoryPattern = /##### ([^#\n]+)/g;
-    let match;
-    const sections: { category: string, content: string }[] = [];
-    let lastIndex = 0;
-
-    // Find all category headers
-    while ((match = categoryPattern.exec(text)) !== null) {
-      if (lastIndex > 0) {
-        // Add the previous section's content
-        const prevMatch = sections[sections.length - 1];
-        if (prevMatch) {
-          prevMatch.content = text.substring(lastIndex, match.index).trim();
-        }
-      }
-      
-      sections.push({
-        category: match[1].trim(),
-        content: ""
-      });
-      
-      lastIndex = match.index + match[0].length;
-    }
-
-    // Add content for the last section
-    if (sections.length > 0) {
-      sections[sections.length - 1].content = text.substring(lastIndex).trim();
-    }
-
+    const sections = cleanText.split(/#####[\s\S]*?(.*?)\n/);
     let faqCounter = 1;
 
-    // Process each section
-    sections.forEach((section) => {
-      const categoryName = section.category;
+    for (let i = 1; i < sections.length; i += 2) {
+      const categoryName = sections[i].trim();
+      const content = sections[i + 1] || '';
       const mappedCategory = categoryMappings[categoryName];
+
+      if (!mappedCategory) continue;
       
-      if (!mappedCategory) {
-        logger.warn(`Unknown category: ${categoryName}`);
-        return;
-      }
+      // FIX #2: More flexible splitting for Q&A pairs.
+      // Splits on a "- " that is followed by a question, even if it's not on a new line.
+      const qaPairs = content.trim().split(/\n\s*(?=-\s+[^\n]+\?)/g);
 
-      // Extract FAQ items from section content
-      // Pattern to match FAQ questions and answers - Fixed pattern to match: "- Question? ![down](URL)\nAnswer"
-      const faqPattern = /- ([^?]+\?) !\[down\]\([^)]*\)\n([^]*?)(?=\n- |$)/gm;
-      let faqMatch;
-
-      while ((faqMatch = faqPattern.exec(section.content)) !== null) {
-        const question = faqMatch[1].trim();
-        let answer = faqMatch[2].trim();
+      for (const pair of qaPairs) {
+        if (!pair.includes('?')) continue;
         
-        // Clean up the answer text
+        // FIX #1: More robust slicing using the index of '?'
+        const questionMarkIndex = pair.indexOf('?');
+        const question = pair.substring(0, questionMarkIndex + 1).replace(/-\s*/, '').trim();
+        let answer = pair.substring(questionMarkIndex + 1).trim();
+        
         answer = answer
-          .replace(/\[iframe\][^[]*\[\/iframe\]/g, '') // Remove iframe content
-          .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // Convert markdown links to plain text
-          .replace(/!\[[^\]]*\]\([^)]*\)/g, '') // Remove images
-          .replace(/\n+/g, ' ') // Replace multiple newlines with space
-          .replace(/\s+/g, ' ') // Normalize whitespace
-          .trim();
+           .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+           .replace(/\s+/g, ' ')
+            .trim();
 
-        if (question && answer && answer.length > 10) { // Only include substantial answers
+        if (question.length > 5 && answer.length > 5) {
           faqs.push({
-            _id: `aven_faq_${faqCounter}`,
-            chunk_text: answer,
-            category: mappedCategory
+            _id: `aven_faq_${faqCounter++}`,
+            chunk_text: `Question: ${question}\n\nAnswer: ${answer}`,
+            category: mappedCategory,
+            question: question
           });
-          faqCounter++;
         }
       }
-    });
+    }
 
     logger.info(`Extracted ${faqs.length} FAQ items from raw text`);
     return faqs;
   }
 
-  /**
+/**
    * Validate and clean the extracted FAQ data
    */
-  private validateAndCleanFAQs(faqs: Array<{_id: string, chunk_text: string, category: AvenCategory}>): ScrapedFAQItem[] {
-    const validCategories: AvenCategory[] = [
-      "Trending Articles",
-      "Application", 
-      "Payments",
-      "Before You Apply",
-      "Offer, Rates, & Fees",
-      "Account",
-      "Online Notary",
-      "Debt Protection"
-    ];
+private validateAndCleanFAQs(
+  // Change #1: Update the parameter type to include 'question'
+  faqs: Array<{_id: string, chunk_text: string, category: AvenCategory, question: string}>
+): ScrapedFAQItem[] {
+  const validCategories: AvenCategory[] = [
+    "Trending Articles",
+    "Application", 
+    "Payments",
+    "Before You Apply",
+    "Offer, Rates, & Fees",
+    "Account",
+    "Online Notary",
+    "Debt Protection"
+  ];
 
-    return faqs
-      .filter((faq, index) => {
-        // Basic validation
-        if (!faq || typeof faq !== 'object') {
-          logger.warn(`Invalid FAQ object at index ${index}`);
+  return faqs
+    .filter((faq, index) => {
+      // ... your existing filter logic is fine ...
+      if (!faq || typeof faq !== 'object') {
+        logger.warn(`Invalid FAQ object at index ${index}`);
+        return false;
+      }
+      if (!faq.chunk_text || typeof faq.chunk_text !== 'string' || faq.chunk_text.trim().length === 0) {
+        logger.warn(`Invalid chunk_text at index ${index}`);
+        return false;
+      }
+      if (!faq.category || !validCategories.includes(faq.category)) {
+        logger.warn(`Invalid category "${faq.category}" at index ${index}`);
+        return false;
+      }
+      // Also a good idea to validate the question property
+      if (!faq.question || typeof faq.question !== 'string' || faq.question.trim().length === 0) {
+          logger.warn(`Invalid question at index ${index}`);
           return false;
-        }
-
-        if (!faq.chunk_text || typeof faq.chunk_text !== 'string' || faq.chunk_text.trim().length === 0) {
-          logger.warn(`Invalid chunk_text at index ${index}`);
-          return false;
-        }
-
-        if (!faq.category || !validCategories.includes(faq.category)) {
-          logger.warn(`Invalid category "${faq.category}" at index ${index}`);
-          return false;
-        }
-
-        return true;
-      })
-      .map((faq, index) => {
-        // Generate ID if not provided or invalid
-        const id = faq._id && typeof faq._id === 'string' ? faq._id : `aven_faq_${index + 1}`;
-        
-        return {
-          _id: id,
-          chunk_text: faq.chunk_text.trim(),
-          category: faq.category
-        };
-      });
-  }
+      }
+      return true;
+    })
+    .map((faq, index) => {
+      const id = faq._id && typeof faq._id === 'string' ? faq._id : `aven_faq_${index + 1}`;
+      
+      return {
+        _id: id,
+        chunk_text: faq.chunk_text.trim(),
+        category: faq.category,
+        // Change #2: Add the 'question' property to the final object
+        question: faq.question
+      };
+    });
+}
 
   /**
    * Get statistics about category distribution
@@ -215,12 +203,12 @@ export class AvenScraper {
   /**
    * Scrape with retry logic
    */
-  async scrapeWithRetry(maxRetries: number = 3): Promise<AvenSupportData> {
+  async scrapeWithRetry(maxRetries: number = 3, saveRawResult: boolean = true, saveProcessedResult: boolean = true): Promise<AvenSupportData> {
     let lastError: Error;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        return await this.scrapeAvenSupport();
+        return await this.scrapeAvenSupport(saveRawResult, saveProcessedResult);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
         
@@ -263,6 +251,30 @@ export class AvenScraper {
     
     logger.info(`Scraped data saved to: ${filePath}`);
     return filePath;
+  }
+
+  /**
+   * Save raw EXA result to file
+   */
+  private async saveRawExaResult(result: import('./types').ExaSearchResponse): Promise<void> {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `aven-support-raw-exa-${timestamp}.json`;
+    const dataDir = path.join(process.cwd(), 'data', 'raw');
+
+    // Ensure directory exists
+    try {
+      await fs.mkdir(dataDir, { recursive: true });
+    } catch {
+      // Directory might already exist
+    }
+
+    const filePath = path.join(dataDir, fileName);
+
+    await fs.writeFile(filePath, JSON.stringify(result, null, 2), 'utf-8');
+    logger.info(`Raw EXA result saved to: ${filePath}`);
   }
 
   /**
