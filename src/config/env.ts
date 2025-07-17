@@ -25,6 +25,7 @@ const envSchema = z.object({
   // VAPI Configuration
   VAPI_PUBLIC_API_KEY: z.string().min(1, "VAPI_PUBLIC_API_KEY is required"),
   VAPI_PRIVATE_API_KEY: z.string().min(1, "VAPI_PRIVATE_API_KEY is required"),
+  VAPI_ASSISTANT_ID: z.string().min(1, "VAPI_ASSISTANT_ID is required"),
 
   // OpenAI Configuration
   OPENAI_API_KEY: z.string().min(1, "OPENAI_API_KEY is required"),
@@ -53,6 +54,7 @@ const validateEnv = (): Env => {
       PINECONE_INDEX_NAME: process.env.PINECONE_INDEX_NAME,
       VAPI_PUBLIC_API_KEY: process.env.VAPI_PUBLIC_API_KEY,
       VAPI_PRIVATE_API_KEY: process.env.VAPI_PRIVATE_API_KEY,
+      VAPI_ASSISTANT_ID: process.env.VAPI_ASSISTANT_ID,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY,
       OPENAI_MODEL: process.env.OPENAI_MODEL,
       OPENAI_EMBEDDING_MODEL: process.env.OPENAI_EMBEDDING_MODEL,

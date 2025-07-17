@@ -43,6 +43,7 @@ export const config = {
   vapi: {
     publicKey: env.VAPI_PUBLIC_API_KEY,
     privateKey: env.VAPI_PRIVATE_API_KEY,
+    assistantId: env.VAPI_ASSISTANT_ID,
     baseUrl: "https://api.vapi.ai",
     assistant: {
       model: {

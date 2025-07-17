@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useToast } from '@/hooks/useToast'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
+import { VoiceWidget } from './VoiceWidget'
 
 // Types
 interface Message {
@@ -132,6 +133,7 @@ export function ChatInterface() {
           />
         </div>
       </div>
+              <VoiceWidget />
     </div>
   )
 } 
