@@ -29,7 +29,7 @@ export interface FAQRecord {
 // Search configuration
 export interface SearchConfig {
   topK?: number;
-  filter?: Record<string, any>;
+  filter?: Record<string, unknown>;
   includeMetadata?: boolean;
   includeValues?: boolean;
   namespace?: string;
@@ -39,7 +39,7 @@ export interface SearchConfig {
 export interface SearchResult {
   id: string;
   score: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   values?: number[];
 }
 
@@ -93,7 +93,7 @@ export interface IndexStats {
 export interface PineconeError {
   code: string;
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 // Batch operation result

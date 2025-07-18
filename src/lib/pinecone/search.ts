@@ -45,12 +45,12 @@ export class PineconeSearch {
       });
 
       // FIX 1: The response from `searchRecords` is in `queryResponse.result.hits`
-      const hits = queryResponse.result.hits as any[];
-      const results: SearchResult[] = hits?.map((hit: any) => ({
-        id: hit.id,
-        score: hit.score || 0, // The score from the reranker will be here
+      const hits = queryResponse.result.hits as Record<string, unknown>[];
+      const results: SearchResult[] = hits?.map((hit: Record<string, unknown>) => ({
+        id: hit.id as string,
+        score: (hit.score as number) || 0, // The score from the reranker will be here
         // FIX 2: Metadata from `searchRecords` is in the `fields` property
-        metadata: hit.fields, 
+        metadata: hit.fields as Record<string, unknown>, 
       })) || [];
 
       return {
@@ -126,7 +126,6 @@ export class PineconeSearch {
     documentId: string,
     config: SearchConfig = {}
   ): Promise<SearchResponse> {
-    const startTime = Date.now();
 
     try {
       console.log(`Finding similar documents to ${documentId}`);

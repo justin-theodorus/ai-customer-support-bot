@@ -1,7 +1,7 @@
 import { ChatBot } from '@/components/ChatBot';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bot, Code, Database, Zap } from 'lucide-react';
+import { Code, Database, Zap } from 'lucide-react';
 
 export default function DemoPage() {
   return (
@@ -92,16 +92,16 @@ export default function DemoPage() {
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-blue-800 dark:text-blue-300">
-                  <strong>Payment:</strong> "How do I make a payment online?"
+                  <strong>Payment:</strong> &ldquo;How do I make a payment online?&rdquo;
                 </div>
                 <div className="bg-green-50 dark:bg-green-900/20 p-2 rounded text-green-800 dark:text-green-300">
-                  <strong>Loans:</strong> "What documents are needed for a loan application?"
+                  <strong>Loans:</strong> &ldquo;What documents are needed for a loan application?&rdquo;
                 </div>
                 <div className="bg-purple-50 dark:bg-purple-900/20 p-2 rounded text-purple-800 dark:text-purple-300">
-                  <strong>Account:</strong> "How do I reset my password?"
+                  <strong>Account:</strong> &ldquo;How do I reset my password?&rdquo;
                 </div>
                 <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded text-orange-800 dark:text-orange-300">
-                  <strong>Rates:</strong> "What are your current interest rates?"
+                  <strong>Rates:</strong> &ldquo;What are your current interest rates?&rdquo;
                 </div>
               </CardContent>
             </Card>

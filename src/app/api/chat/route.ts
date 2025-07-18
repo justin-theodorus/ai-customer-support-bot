@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     });
 
     let context = '';
-    let searchResults: any = null;
+    let searchResults: unknown = null;
 
     // Retrieve context using semantic search
     if (includeContext) {
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
 /**
  * GET /api/chat - Get chat API information
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     return NextResponse.json({
       message: 'Aven AI Customer Support Chat API',

@@ -3,6 +3,7 @@ import { Logger } from "@/utils/logger";
 
 // Load environment variables from .env.local (for scripts)
 if (typeof window === "undefined") {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require("dotenv").config({ path: ".env.local" });
 }
 

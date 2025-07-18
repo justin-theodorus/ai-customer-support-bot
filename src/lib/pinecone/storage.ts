@@ -22,7 +22,7 @@ export class PineconeStorage {
   ): Promise<BatchResult> {
     const startTime = Date.now();
     let processedCount = 0;
-    const errors: any[] = [];
+    const errors: unknown[] = [];
 
     try {
       console.log(`Upserting ${records.length} records to index ${indexName}`);
@@ -72,7 +72,7 @@ export class PineconeStorage {
   ): Promise<BatchResult> {
     const startTime = Date.now();
     let totalProcessed = 0;
-    const allErrors: any[] = [];
+    const allErrors: unknown[] = [];
 
     try {
       console.log(`Batch upserting ${records.length} records in batches of ${batchSize}`);
@@ -180,7 +180,7 @@ convertFaqsToUpsertRecords(faqs: FAQRecord[]): UpsertRecord[] {
   /**
    * Get record by ID
    */
-  async getRecord(indexName: string, id: string, namespace?: string): Promise<any> {
+  async getRecord(indexName: string, id: string, namespace?: string): Promise<unknown> {
     try {
       const index = this.client.getIndex(indexName, namespace);
       const result = await index.fetch([id]);
@@ -194,7 +194,7 @@ convertFaqsToUpsertRecords(faqs: FAQRecord[]): UpsertRecord[] {
   /**
    * Get multiple records by IDs
    */
-  async getRecords(indexName: string, ids: string[], namespace?: string): Promise<any[]> {
+  async getRecords(indexName: string, ids: string[], namespace?: string): Promise<unknown[]> {
     try {
       const index = this.client.getIndex(indexName, namespace);
       const result = await index.fetch(ids);

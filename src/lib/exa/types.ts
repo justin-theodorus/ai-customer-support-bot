@@ -9,7 +9,7 @@ export interface ExaSearchResult {
   author?: string;
   text?: string;
   highlights?: string[];
-  summary?: any;
+  summary?: unknown;
 }
 
 export interface ExaSearchResponse {
@@ -26,7 +26,7 @@ export interface ExaContentOptions {
   };
   summary?: {
     query: string;
-    schema?: any;
+    schema?: unknown;
   };
 }
 

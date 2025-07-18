@@ -67,7 +67,7 @@ export class ExaClient {
   async getContents(
     ids: string[],
     options: ExaContentOptions = {}
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       logger.info(`Fetching content for ${ids.length} items`);
       

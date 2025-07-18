@@ -30,10 +30,7 @@ const SearchRequestSchema = z.object({
   filter: z.record(z.any()).optional(),
 });
 
-const StatsRequestSchema = z.object({
-  indexName: z.string().optional(),
-  namespace: z.string().optional(),
-});
+// Removed unused StatsRequestSchema
 
 /**
  * POST /api/search - Perform semantic search
@@ -243,7 +240,7 @@ export async function GET(request: NextRequest) {
 /**
  * Example requests for testing
  */
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS() {
   return NextResponse.json({
     message: 'Search API with Pinecone Integrated Embeddings',
     endpoints: {

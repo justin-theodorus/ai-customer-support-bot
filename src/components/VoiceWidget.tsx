@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Vapi from '@vapi-ai/web'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Mic, MicOff, Phone, PhoneOff } from 'lucide-react'
+import { Mic, PhoneOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 // Client-side environment variables
 const VAPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY
@@ -28,13 +28,12 @@ export function VoiceWidget({ className }: VoiceWidgetProps) {
   const [transcript, setTranscript] = useState<VoiceMessage[]>([])
   const [isInitialized, setIsInitialized] = useState(false)
 
-  // Check if required environment variables are available
-  if (!VAPI_PUBLIC_KEY || !VAPI_ASSISTANT_ID) {
-    console.warn('VAPI environment variables not configured. VoiceWidget will not be functional.')
-    return null
-  }
-
   useEffect(() => {
+    // Check if required environment variables are available
+    if (!VAPI_PUBLIC_KEY || !VAPI_ASSISTANT_ID) {
+      console.warn('VAPI environment variables not configured. VoiceWidget will not be functional.')
+      return
+    }
     if (!isInitialized && VAPI_PUBLIC_KEY) {
       const vapiInstance = new Vapi(VAPI_PUBLIC_KEY)
       setVapi(vapiInstance)
@@ -101,6 +100,11 @@ export function VoiceWidget({ className }: VoiceWidgetProps) {
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
+
+  // Check if required environment variables are available
+  if (!VAPI_PUBLIC_KEY || !VAPI_ASSISTANT_ID) {
+    return null
   }
 
   return (

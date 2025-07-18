@@ -10,7 +10,7 @@ export abstract class AppError extends Error {
   abstract readonly errorCode: string;
   abstract readonly isOperational: boolean;
 
-  constructor(message: string, public readonly context?: Record<string, any>) {
+  constructor(message: string, public readonly context?: Record<string, unknown>) {
     super(message);
     this.name = this.constructor.name;
     Error.captureStackTrace(this, this.constructor);
@@ -36,7 +36,7 @@ export class ConfigurationError extends AppError {
   readonly errorCode = "CONFIGURATION_ERROR";
   readonly isOperational = true;
 
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(`Configuration Error: ${message}`, context);
   }
 }
@@ -52,7 +52,7 @@ export class ExternalAPIError extends AppError {
   constructor(
     public readonly service: string,
     message: string,
-    context?: Record<string, any>
+    context?: Record<string, unknown>
   ) {
     super(`${service} API Error: ${message}`, context);
   }
@@ -66,7 +66,7 @@ export class DataProcessingError extends AppError {
   readonly errorCode = "DATA_PROCESSING_ERROR";
   readonly isOperational = true;
 
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(`Data Processing Error: ${message}`, context);
   }
 }
@@ -79,7 +79,7 @@ export class VectorDatabaseError extends AppError {
   readonly errorCode = "VECTOR_DATABASE_ERROR";
   readonly isOperational = true;
 
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(`Vector Database Error: ${message}`, context);
   }
 }
@@ -92,7 +92,7 @@ export class VoiceAssistantError extends AppError {
   readonly errorCode = "VOICE_ASSISTANT_ERROR";
   readonly isOperational = true;
 
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(`Voice Assistant Error: ${message}`, context);
   }
 }
@@ -105,7 +105,7 @@ export class ScrapingError extends AppError {
   readonly errorCode = "SCRAPING_ERROR";
   readonly isOperational = true;
 
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(`Scraping Error: ${message}`, context);
   }
 }
@@ -118,7 +118,7 @@ export class ValidationError extends AppError {
   readonly errorCode = "VALIDATION_ERROR";
   readonly isOperational = true;
 
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(`Validation Error: ${message}`, context);
   }
 }
@@ -131,7 +131,7 @@ export class RateLimitError extends AppError {
   readonly errorCode = "RATE_LIMIT_ERROR";
   readonly isOperational = true;
 
-  constructor(message: string = "Rate limit exceeded", context?: Record<string, any>) {
+  constructor(message: string = "Rate limit exceeded", context?: Record<string, unknown>) {
     super(message, context);
   }
 }
@@ -144,7 +144,7 @@ export class AuthError extends AppError {
   readonly errorCode = "AUTH_ERROR";
   readonly isOperational = true;
 
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(`Authentication Error: ${message}`, context);
   }
 }
@@ -157,7 +157,7 @@ export class ApplicationError extends AppError {
   readonly errorCode = "APPLICATION_ERROR";
   readonly isOperational = false;
 
-  constructor(message: string, context?: Record<string, any>) {
+  constructor(message: string, context?: Record<string, unknown>) {
     super(`Application Error: ${message}`, context);
   }
 }
@@ -169,7 +169,7 @@ export class ErrorHandler {
   /**
    * Handle and log errors appropriately
    */
-  static handle(error: Error, context?: Record<string, any>) {
+  static handle(error: Error, context?: Record<string, unknown>) {
     if (error instanceof AppError) {
       logger.error(`${error.errorCode}: ${error.message}`, error, {
         ...context,
@@ -235,9 +235,9 @@ export class ErrorHandler {
 /**
  * Utility function to wrap async functions with error handling
  */
-export function withErrorHandling<T extends any[], R>(
+export function withErrorHandling<T extends unknown[], R>(
   fn: (...args: T) => Promise<R>,
-  context?: Record<string, any>
+  context?: Record<string, unknown>
 ) {
   return async (...args: T): Promise<R> => {
     try {
