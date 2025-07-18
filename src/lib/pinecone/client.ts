@@ -1,6 +1,4 @@
-/**
- * Pinecone Client with Integrated Embeddings
- */
+// Pinecone Client with Integrated Embeddings
 
 import { Pinecone } from '@pinecone-database/pinecone';
 import { IndexConfig, IndexStats } from './types';

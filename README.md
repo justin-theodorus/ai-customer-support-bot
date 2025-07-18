@@ -9,7 +9,7 @@ A sophisticated AI-powered customer support chatbot for Aven Financial Services,
 - **📚 RAG Technology** - Retrieval-Augmented Generation for contextually accurate responses
 - **💬 Real-time Chat** - Responsive chat interface with message history
 - **🎯 Domain-Specific** - Trained on Aven's actual support documentation
-- **🔧 Developer Mode** - Detailed metadata and performance metrics for development
+- **🎙️ Voice Support** - Voice interaction capabilities with VAPI integration
 
 ## 🏗️ Architecture
 
@@ -70,9 +70,6 @@ npm run script:initial-scrape
 # Create Pinecone index and upload data
 npm run setup:pinecone
 
-# Test the complete pipeline
-npm run test:pinecone
-```
 
 4. **Start the development server**
 ```bash
@@ -81,7 +78,6 @@ npm run dev
 
 5. **Open your browser**
 - Main chatbot interface: http://localhost:3000
-- Developer demo: http://localhost:3000/demo
 
 ## 💬 Using the Chatbot
 
@@ -92,13 +88,6 @@ Navigate to the home page to access the production-ready chatbot interface:
 - Natural conversation flow
 - Contextual responses about Aven services
 
-### Developer Interface
-
-Visit `/demo` for the development interface with detailed metrics:
-- Response timing and token usage
-- Search result scores and context utilization
-- Technical performance indicators
-- API endpoint information
 
 ### Example Questions
 
@@ -175,7 +164,6 @@ Direct semantic search access:
 # Data Pipeline
 npm run script:initial-scrape    # Scrape Aven support pages
 npm run setup:pinecone          # Set up vector database
-npm run test:pinecone           # Test Pinecone integration
 
 # Development
 npm run dev                     # Start development server
@@ -193,10 +181,9 @@ src/
 │   │   ├── chat/route.ts          # RAG chat endpoint
 │   │   ├── search/route.ts        # Semantic search API
 │   │   └── embeddings/route.ts    # Vector operations
-│   ├── demo/page.tsx              # Developer interface
 │   └── page.tsx                   # Main chatbot interface
 ├── components/
-│   ├── ChatBot.tsx                # Main chat component
+│   ├── ChatInterface.tsx          # Main chat component
 │   └── ui/                        # shadcn/ui components
 └── lib/
     ├── pinecone/                  # Vector database integration
@@ -219,10 +206,9 @@ This project is licensed under the MIT License.
 ## 🆘 Support
 
 For technical issues or questions:
-1. Check the `/demo` page for debugging information
-2. Review API endpoint responses at `/api/chat` and `/api/search`
-3. Check the browser console for detailed error messages
-4. Ensure all environment variables are properly configured
+1. Review API endpoint responses at `/api/chat` and `/api/search`
+2. Check the browser console for detailed error messages
+3. Ensure all environment variables are properly configured
 
 ---
 

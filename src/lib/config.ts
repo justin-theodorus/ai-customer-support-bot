@@ -1,8 +1,6 @@
 import { env } from "@/config/env";
 
-/**
- * Centralized configuration for the AI Customer Support Bot
- */
+// Centralized configuration for the AI Customer Support Bot
 export const config = {
   // Application Settings
   app: {

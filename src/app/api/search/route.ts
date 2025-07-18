@@ -1,6 +1,4 @@
-/**
- * Search API with Pinecone Integrated Embeddings
- */
+// Search API with Pinecone Integrated Embeddings
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';

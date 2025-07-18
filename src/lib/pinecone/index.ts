@@ -1,6 +1,4 @@
-/**
- * Pinecone Integration with Integrated Embeddings
- */
+// Pinecone Integration with Integrated Embeddings
 
 // Export main services
 export { default as PineconeClient } from './client';

@@ -1,7 +1,4 @@
-/**
- * Chat API with RAG (Retrieval-Augmented Generation)
- * Uses Pinecone semantic search + OpenAI for contextual responses
- */
+// Chat API with RAG using Pinecone semantic search + OpenAI
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -36,7 +33,6 @@ const ChatRequestSchema = z.object({
   model: z.string().optional(),
 });
 
-// System prompt for Aven customer support
 const SYSTEM_PROMPT = `You are an AI customer support assistant for Aven, a financial services company. You help customers with questions about loans, payments, account management, and other financial services.
 
 Guidelines:
@@ -45,13 +41,10 @@ Guidelines:
 - If you don't have enough information in the context, politely say so and suggest contacting customer support
 - For financial advice or complex situations, recommend speaking with a financial advisor
 - Keep responses concise but comprehensive
-- When referencing specific procedures or policies, cite the relevant information from the context
 
 Context from Aven's knowledge base will be provided below. Use this information to answer the user's question.`;
 
-/**
- * POST /api/chat - Generate AI response with RAG
- */
+// POST /api/chat - Generate AI response with RAG
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -220,9 +213,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/chat - Get chat API information
- */
+// GET /api/chat - Get chat API information
 export async function GET() {
   try {
     return NextResponse.json({

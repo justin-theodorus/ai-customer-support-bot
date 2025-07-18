@@ -1,6 +1,4 @@
-/**
- * Application constants for the AI Customer Support Bot
- */
+// Application constants for the AI Customer Support Bot
 
 // Application Information
 export const APP_NAME = "Aven AI Customer Support Bot";

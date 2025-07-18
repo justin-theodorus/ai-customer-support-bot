@@ -1,6 +1,4 @@
-/**
- * Pinecone Storage Service with Integrated Embeddings
- */
+// Pinecone Storage Service with Integrated Embeddings
 
 import PineconeClient from './client';
 import { UpsertRecord, FAQRecord, BatchResult } from './types';

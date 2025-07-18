@@ -1,16 +1,6 @@
 #!/usr/bin/env tsx
 
-/**
- * Initial Scraping Script for Aven Support Page
- * 
- * This script performs the initial data collection from the Aven support page
- * and saves the results for further processing in the vector database.
- * 
- * Usage:
- *   npm run script:initial-scrape
- *   or
- *   npx tsx scripts/initial-scrape.ts
- */
+// Initial Scraping Script for Aven Support Page
 
 import { avenScraper } from "../src/lib/exa/scraper";
 import { Logger } from "../src/utils/logger";

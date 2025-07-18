@@ -1,6 +1,4 @@
-/**
- * Pinecone Search Service with Integrated Embeddings
- */
+// Pinecone Search Service with Integrated Embeddings
 
 import PineconeClient from './client';
 import { SearchConfig, SearchResult, SearchResponse, CategorySearchConfig, HybridSearchConfig } from './types';

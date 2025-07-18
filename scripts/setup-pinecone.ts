@@ -1,15 +1,5 @@
 #!/usr/bin/env node
-/**
- * Pinecone Setup Script with Integrated Embeddings
- * 
- * This script sets up Pinecone with integrated embeddings and processes FAQ data.
- * 
- * Usage:
- *   npm run setup:pinecone
- *   npm run setup:pinecone -- --force
- *   npm run setup:pinecone -- --namespace custom-namespace
- *   npm run setup:pinecone -- --data-file ./data/custom-data.json
- */
+// Pinecone Setup Script with Integrated Embeddings
 
 import { Command } from 'commander';
 import { PineconeClient, PineconeStorage } from '../src/lib/pinecone';

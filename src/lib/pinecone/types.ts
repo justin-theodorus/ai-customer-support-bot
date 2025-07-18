@@ -1,7 +1,4 @@
-/**
- * Pinecone Integration Types
- * Updated to use Pinecone's integrated embeddings
- */
+// Pinecone Integration Types - Updated to use Pinecone's integrated embeddings
 
 // Record format for Pinecone integrated embeddings
 export type UpsertRecord = {

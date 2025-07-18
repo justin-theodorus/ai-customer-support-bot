@@ -1,6 +1,4 @@
-/**
- * Core TypeScript type definitions for the AI Customer Support Bot
- */
+// Core TypeScript type definitions for the AI Customer Support Bot
 
 // ============================================
 // Common Types
