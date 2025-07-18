@@ -5,12 +5,14 @@ import { useToast } from '@/hooks/useToast'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { VoiceWidget } from './VoiceWidget'
+import { ScrollArea } from './ui/scroll-area'
 
 // Types
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  timestamp: Date
 }
 
 export function ChatInterface() {
@@ -35,6 +37,7 @@ export function ChatInterface() {
         id: 'init',
         role: 'assistant',
         content: "Hello! I'm your Aven AI support assistant. How can I help you today?",
+        timestamp: new Date(),
       },
     ])
   }, [])
@@ -46,6 +49,7 @@ export function ChatInterface() {
       id: `user-${Date.now()}`,
       role: 'user',
       content: message.trim(),
+      timestamp: new Date(),
     }
 
     setMessages((prev) => [...prev, userMessage])
@@ -83,6 +87,7 @@ export function ChatInterface() {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
         content: data.message,
+        timestamp: new Date(),
       }
 
       setMessages((prev) => [...prev, assistantMessage])
@@ -99,6 +104,7 @@ export function ChatInterface() {
         role: 'assistant',
         content:
           'I apologize, but I encountered an error. Please try again later.',
+        timestamp: new Date(),
       }
       setMessages((prev) => [...prev, errorMessage])
     } finally {
@@ -112,19 +118,35 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
-      <div className="flex-1 space-y-8 overflow-y-auto p-6 md:p-8 max-w-4xl mx-auto w-full">
-        {messages.map((message) => (
-          <ChatMessage
-            key={message.id}
-            role={message.role}
-            content={message.content}
-          />
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-      <div className="border-t bg-background p-6 md:p-8">
-        <div className="max-w-4xl mx-auto w-full">
+    <div className="flex flex-col h-full bg-background text-foreground">
+      {/* Chat Messages */}
+      <ScrollArea className="flex-1 p-4 pb-2">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {messages.map((message) => (
+            <ChatMessage
+              key={message.id}
+              role={message.role}
+              content={message.content}
+              timestamp={message.timestamp}
+            />
+          ))}
+          
+          {isLoading && (
+            <ChatMessage
+              role="assistant"
+              content=""
+              timestamp={new Date()}
+              isTyping={true}
+            />
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
+      </ScrollArea>
+
+      {/* Input Area */}
+      <div className="p-4 pt-2 border-t border-border/50">
+        <div className="max-w-4xl mx-auto">
           <ChatInput
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -133,7 +155,8 @@ export function ChatInterface() {
           />
         </div>
       </div>
-              <VoiceWidget />
+      
+      <VoiceWidget />
     </div>
   )
 } 
