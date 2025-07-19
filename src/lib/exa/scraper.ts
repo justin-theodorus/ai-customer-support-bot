@@ -22,7 +22,7 @@ export class AvenScraper {
         }
       );
 
-      // Save raw EXA result before processing (if enabled)
+      // Save raw EXA result before processing
       if (saveRawResult) {
         await this.saveRawExaResult(result);
       }
@@ -105,14 +105,13 @@ export class AvenScraper {
 
       if (!mappedCategory) continue;
       
-      // FIX #2: More flexible splitting for Q&A pairs.
       // Splits on a "- " that is followed by a question, even if it's not on a new line.
       const qaPairs = content.trim().split(/\n\s*(?=-\s+[^\n]+\?)/g);
 
       for (const pair of qaPairs) {
         if (!pair.includes('?')) continue;
         
-        // FIX #1: More robust slicing using the index of '?'
+        // More robust slicing using the index of '?'
         const questionMarkIndex = pair.indexOf('?');
         const question = pair.substring(0, questionMarkIndex + 1).replace(/-\s*/, '').trim();
         let answer = pair.substring(questionMarkIndex + 1).trim();
@@ -184,7 +183,6 @@ private validateAndCleanFAQs(
         _id: id,
         chunk_text: faq.chunk_text.trim(),
         category: faq.category,
-        // Change #2: Add the 'question' property to the final object
         question: faq.question
       };
     });

@@ -2,8 +2,7 @@
 // Pinecone Setup Script with Integrated Embeddings
 
 import { Command } from 'commander';
-import { PineconeClient, PineconeStorage } from '../src/lib/pinecone';
-import { FAQRecord, IndexConfig } from '../src/lib/pinecone/types';
+import { IndexConfig } from '../src/lib/pinecone/types';
 import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
@@ -19,6 +18,69 @@ const DEFAULT_CONFIG: IndexConfig = {
 };
 
 const DEFAULT_NAMESPACE = 'default';
+
+/**
+ * Get index statistics via API
+ */
+async function getIndexStats(indexName: string): Promise<{
+  totalVectorCount?: number;
+  dimension?: number;
+  indexFullness?: number;
+  namespaces?: Record<string, { vectorCount: number }>;
+}> {
+  const apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const response = await fetch(`${apiUrl}/api/embeddings?indexName=${encodeURIComponent(indexName)}`);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to get index stats: ${response.status}`);
+  }
+  
+  const result = await response.json();
+  return result.stats;
+}
+
+/**
+ * Process data via embeddings API
+ */
+async function processEmbeddings(config: {
+  dataFile?: string;
+  indexName: string;
+  namespace: string;
+  forceRecreate: boolean;
+  batchSize: number;
+}): Promise<{
+  success: boolean;
+  processed: number;
+  failed: number;
+  stats: {
+    totalVectorCount?: number;
+    dimension?: number;
+    indexFullness?: number;
+    namespaces?: Record<string, { vectorCount: number }>;
+  };
+}> {
+  const apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const response = await fetch(`${apiUrl}/api/embeddings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(config),
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Embeddings API failed: ${response.status} ${response.statusText} - ${errorData.message || 'Unknown error'}`);
+  }
+  
+  const result = await response.json();
+  
+  if (!result.success) {
+    throw new Error(`Embeddings API returned error: ${result.error || 'Unknown error'}`);
+  }
+  
+  return result;
+}
 
 async function main() {
   const program = new Command();
@@ -47,10 +109,6 @@ async function main() {
   console.log(chalk.gray('================================================'));
 
   try {
-    // Initialize Pinecone client
-    const pineconeClient = PineconeClient.getInstance();
-    const pineconeStorage = new PineconeStorage();
-
     const indexName = options.indexName || DEFAULT_CONFIG.name;
     const namespace = options.namespace || DEFAULT_NAMESPACE;
     const batchSize = parseInt(options.batchSize) || 100;
@@ -64,139 +122,101 @@ async function main() {
     console.log(`  Dry Run: ${options.dryRun ? 'Yes' : 'No'}`);
     console.log();
 
-    // Check if index exists
-    const indexExists = await pineconeClient.indexExists(indexName);
+    // Check if index exists via API
+    console.log(chalk.blue('📊 Checking index status via API...'));
+    const indexStats = await getIndexStats(indexName).catch(() => null);
+    const indexExists = indexStats !== null;
+    
     console.log(chalk.blue(`📊 Index "${indexName}" exists: ${indexExists ? 'Yes' : 'No'}`));
 
     if (indexExists && !options.force) {
       console.log(chalk.yellow('⚠️  Index already exists. Use --force to recreate it.'));
       
       // Show existing index stats
-      const stats = await pineconeClient.getIndexStats(indexName);
-      console.log(chalk.gray('Current index stats:'));
-      console.log(`  Total vectors: ${stats.totalVectorCount}`);
-      console.log(`  Dimension: ${stats.dimension}`);
-      console.log(`  Index fullness: ${(stats.indexFullness * 100).toFixed(2)}%`);
-      console.log(`  Namespaces: ${Object.keys(stats.namespaces).join(', ')}`);
+      if (indexStats) {
+        console.log(chalk.gray('Current index stats:'));
+        console.log(`  Total vectors: ${indexStats.totalVectorCount || 0}`);
+        console.log(`  Dimension: ${indexStats.dimension || 'N/A'}`);
+        console.log(`  Index fullness: ${((indexStats.indexFullness || 0) * 100).toFixed(2)}%`);
+        console.log(`  Namespaces: ${Object.keys(indexStats.namespaces || {}).join(', ')}`);
+      }
       return;
     }
 
-    // Create or recreate index
-    if (options.force && indexExists) {
-      console.log(chalk.red('🗑️  Deleting existing index...'));
-      if (!options.dryRun) {
-        await pineconeClient.deleteIndex(indexName);
-        console.log(chalk.green('✅ Index deleted'));
-        
-        // Wait for deletion to complete
-        console.log(chalk.yellow('⏳ Waiting for deletion to complete...'));
-        await new Promise(resolve => setTimeout(resolve, 10000));
-      }
-    }
-
-    if (!indexExists || options.force) {
-      console.log(chalk.blue('🔧 Creating index with integrated embeddings...'));
-      const indexConfig: IndexConfig = {
-        name: indexName,
-        cloud: DEFAULT_CONFIG.cloud,
-        region: DEFAULT_CONFIG.region,
-        model: options.model || DEFAULT_CONFIG.model,
-        textField: DEFAULT_CONFIG.textField,
-        waitUntilReady: true,
-      };
-
-      if (!options.dryRun) {
-        await pineconeClient.createIndexForModel(indexConfig);
-        console.log(chalk.green('✅ Index created with integrated embeddings'));
-      } else {
-        console.log(chalk.gray('(Dry run) Would create index with config:'), indexConfig);
-      }
-    }
-
-    // Load and process data
+    // Load and process data via API
     const dataFile = options.dataFile || findLatestDataFile();
-    if (!dataFile) {
+    if (!dataFile && !options.dryRun) {
       console.log(chalk.red('❌ No data file found. Please provide --data-file or ensure data exists in data/scraped/'));
       return;
     }
 
-    console.log(chalk.blue(`📄 Loading data from: ${dataFile}`));
-    
-    if (!fs.existsSync(dataFile)) {
-      console.log(chalk.red(`❌ Data file not found: ${dataFile}`));
-      return;
+    if (dataFile) {
+      console.log(chalk.blue(`📄 Using data file: ${dataFile}`));
+      
+      if (!fs.existsSync(dataFile)) {
+        console.log(chalk.red(`❌ Data file not found: ${dataFile}`));
+        return;
+      }
+
+      // Show data preview
+      const rawData = JSON.parse(fs.readFileSync(dataFile, 'utf-8'));
+      const faqs = rawData.faqs || rawData;
+
+      if (!Array.isArray(faqs) || faqs.length === 0) {
+        console.log(chalk.red('❌ No FAQ data found in file'));
+        return;
+      }
+
+      console.log(chalk.green(`📋 Found ${faqs.length} FAQ records`));
+
+      if (faqs.length > 0) {
+        console.log(chalk.yellow('Data preview:'));
+        const categories = [...new Set(faqs.map((faq: { category: string }) => faq.category))];
+        console.log(`  Categories: ${categories.join(', ')}`);
+        console.log(`  Sample record: ${faqs[0]._id} - ${faqs[0].chunk_text.substring(0, 100)}...`);
+        console.log();
+      }
     }
 
-    const rawData = JSON.parse(fs.readFileSync(dataFile, 'utf-8'));
-    const faqs: FAQRecord[] = rawData.faqs || rawData;
-
-    if (!Array.isArray(faqs) || faqs.length === 0) {
-      console.log(chalk.red('❌ No FAQ data found in file'));
-      return;
-    }
-
-    console.log(chalk.green(`📋 Found ${faqs.length} FAQ records`));
-
-    // Show data preview
-    if (faqs.length > 0) {
-      console.log(chalk.yellow('Data preview:'));
-      const categories = [...new Set(faqs.map(faq => faq.category))];
-      console.log(`  Categories: ${categories.join(', ')}`);
-      console.log(`  Sample record: ${faqs[0]._id} - ${faqs[0].chunk_text.substring(0, 100)}...`);
-      console.log();
-    }
-
-    // Convert and upsert data
-    const upsertRecords = pineconeStorage.convertFaqsToUpsertRecords(faqs);
-    
-    console.log(chalk.blue('📤 Uploading data with integrated embeddings...'));
-    console.log(`  Processing ${upsertRecords.length} records in batches of ${batchSize}`);
+    console.log(chalk.blue('📤 Processing data with integrated embeddings via API...'));
+    console.log(`  Batch Size: ${batchSize}`);
 
     if (!options.dryRun) {
       const startTime = Date.now();
       
-      const result = await pineconeStorage.batchUpsertRecords(
+      const result = await processEmbeddings({
+        dataFile,
         indexName,
-        upsertRecords,
+        namespace,
+        forceRecreate: options.force || false,
         batchSize,
-        namespace
-      );
+      });
 
       const duration = Date.now() - startTime;
       
-      if (result.success) {
-        console.log(chalk.green('✅ Data uploaded successfully'));
-        console.log(`  Processed: ${result.processedCount} records`);
-        console.log(`  Failed: ${result.failedCount} records`);
-        console.log(`  Duration: ${duration}ms`);
-      } else {
-        console.log(chalk.red('❌ Upload failed'));
-        console.log(`  Processed: ${result.processedCount} records`);
-        console.log(`  Failed: ${result.failedCount} records`);
-        if (result.errors.length > 0) {
-          console.log('  Errors:');
-          result.errors.forEach(error => {
-            console.log(`    - ${error.message}`);
-          });
-        }
-      }
+      console.log(chalk.green('✅ Data processed successfully via API'));
+      console.log(`  Processed: ${result.processed} records`);
+      console.log(`  Failed: ${result.failed} records`);
+      console.log(`  Duration: ${duration}ms`);
 
       // Show final stats
       console.log(chalk.blue('📊 Final index statistics:'));
-      const stats = await pineconeClient.getIndexStats(indexName);
-      console.log(`  Total vectors: ${stats.totalVectorCount}`);
-      console.log(`  Dimension: ${stats.dimension}`);
-      console.log(`  Index fullness: ${(stats.indexFullness * 100).toFixed(2)}%`);
-      console.log(`  Namespaces: ${Object.keys(stats.namespaces).join(', ')}`);
+      const finalStats = result.stats;
+      console.log(`  Total vectors: ${finalStats.totalVectorCount || 0}`);
+      console.log(`  Dimension: ${finalStats.dimension || 'N/A'}`);
+      console.log(`  Index fullness: ${((finalStats.indexFullness || 0) * 100).toFixed(2)}%`);
+      console.log(`  Namespaces: ${Object.keys(finalStats.namespaces || {}).join(', ')}`);
       
-      if (stats.namespaces[namespace]) {
-        console.log(`  Records in "${namespace}": ${stats.namespaces[namespace].vectorCount}`);
+      if (finalStats.namespaces && finalStats.namespaces[namespace]) {
+        console.log(`  Records in "${namespace}": ${finalStats.namespaces[namespace].vectorCount}`);
       }
     } else {
-      console.log(chalk.gray('(Dry run) Would process records:'));
-      console.log(`  - ${upsertRecords.length} records`);
-      console.log(`  - ${Math.ceil(upsertRecords.length / batchSize)} batches`);
-      console.log(`  - Estimated time: ${Math.ceil(upsertRecords.length / batchSize) * 2} seconds`);
+      console.log(chalk.gray('(Dry run) Would process data via API:'));
+      console.log(`  - Data file: ${dataFile || 'Latest from data/scraped/'}`);
+      console.log(`  - Index: ${indexName}`);
+      console.log(`  - Namespace: ${namespace}`);
+      console.log(`  - Batch size: ${batchSize}`);
+      console.log(`  - Force recreate: ${options.force ? 'Yes' : 'No'}`);
     }
 
     console.log();
@@ -204,7 +224,7 @@ async function main() {
     console.log(chalk.gray('You can now use the search API to query your data.'));
     console.log(chalk.gray('Example: POST /api/search with {"query": "How do I make a payment?"}'));
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(chalk.red('❌ Setup failed:'), error);
     process.exit(1);
   }

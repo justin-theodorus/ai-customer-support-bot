@@ -123,7 +123,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ... (The rest of your function remains the same)
     
     // Prepare messages for OpenAI
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [

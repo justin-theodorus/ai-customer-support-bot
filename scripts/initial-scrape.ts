@@ -2,9 +2,9 @@
 
 // Initial Scraping Script for Aven Support Page
 
-import { avenScraper } from "../src/lib/exa/scraper";
 import { Logger } from "../src/utils/logger";
 import path from "path";
+import fs from "fs";
 
 const logger = new Logger("InitialScrapeScript");
 
@@ -41,9 +41,9 @@ class InitialScrapingRunner {
     const startTime = Date.now();
 
     try {
-      // Step 1: Scrape the data
-      console.log("📡 Step 1: Scraping Aven support page...");
-      const scrapedData = await avenScraper.scrapeWithRetry(this.config.maxRetries);
+      // Step 1: Scrape the data via API
+      console.log("📡 Step 1: Scraping Aven support page via API...");
+      const scrapedData = await this.callScrapeAPI();
 
       // Step 2: Validate results
       if (this.config.validateResults) {
@@ -51,13 +51,16 @@ class InitialScrapingRunner {
         this.validateScrapedData(scrapedData);
       }
 
-      // Step 3: Save to file
-      if (this.config.saveToFile) {
+      // Step 3: Save to file (if not already saved by API)
+      let savedPath: string | null = scrapedData.saved_file || null;
+      if (this.config.saveToFile && !savedPath) {
         console.log("💾 Step 3: Saving scraped data...");
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `aven-support-initial-${timestamp}.json`;
-        const savedPath = await avenScraper.saveScrapedData(scrapedData, filename);
+        savedPath = await this.saveScrapedData(scrapedData, filename);
         console.log(`✅ Data saved to: ${savedPath}`);
+      } else if (savedPath) {
+        console.log(`✅ Data already saved to: ${savedPath}`);
       }
 
       // Step 4: Generate report
@@ -71,6 +74,64 @@ class InitialScrapingRunner {
       console.error("❌ Scraping failed:", error);
       process.exit(1);
     }
+  }
+
+  /**
+   * Call the scrape API endpoint
+   */
+  private async callScrapeAPI(): Promise<any> {
+    const apiUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const endpoint = `${apiUrl}/api/scrape`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        maxRetries: this.config.maxRetries,
+        saveToFile: this.config.saveToFile,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Scrape API failed: ${response.status} ${response.statusText} - ${errorData.message || 'Unknown error'}`);
+    }
+
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(`Scrape API returned error: ${result.message || 'Unknown error'}`);
+    }
+
+    // Transform API response to match expected format
+    return {
+      faqs: result.faqs,
+      metadata: result.data.metadata,
+      saved_file: result.data.saved_file,
+    };
+  }
+
+  /**
+   * Save scraped data to file system (fallback if API didn't save)
+   */
+  private async saveScrapedData(data: any, filename: string): Promise<string> {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = filename || `aven-support-scraped-${timestamp}.json`;
+    const dataDir = this.config.outputDir;
+    
+    // Ensure directory exists
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    const filePath = path.join(dataDir, fileName);
+    
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    
+    console.log(`Scraped data saved to: ${filePath}`);
+    return filePath;
   }
 
   private validateScrapedData(data: any): void {

@@ -36,6 +36,28 @@ const DeleteDataSchema = z.object({
 });
 
 /**
+ * Find the latest scraped data file
+ */
+function findLatestDataFile(): string | null {
+  const scrapedDir = path.join(process.cwd(), 'data', 'scraped');
+  
+  if (!fs.existsSync(scrapedDir)) {
+    return null;
+  }
+
+  const files = fs.readdirSync(scrapedDir)
+    .filter(file => file.endsWith('.json'))
+    .map(file => ({
+      name: file,
+      path: path.join(scrapedDir, file),
+      mtime: fs.statSync(path.join(scrapedDir, file)).mtime,
+    }))
+    .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+
+  return files.length > 0 ? files[0].path : null;
+}
+
+/**
  * POST /api/embeddings - Process scraped data and upsert to Pinecone
  */
 export async function POST(request: NextRequest) {
@@ -72,8 +94,21 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Load data file
-    const dataPath = dataFile || path.join(process.cwd(), 'data/scraped/aven-support-initial-2025-07-12T02-22-18-058Z.json');
+    // Load data file - find latest if not specified
+    let dataPath: string;
+    if (dataFile) {
+      dataPath = path.isAbsolute(dataFile) ? dataFile : path.join(process.cwd(), dataFile);
+    } else {
+      // Find the latest scraped data file
+      const latestFile = findLatestDataFile();
+      if (!latestFile) {
+        return NextResponse.json(
+          { error: 'No data file found. Please provide dataFile parameter or ensure data exists in data/scraped/' },
+          { status: 404 }
+        );
+      }
+      dataPath = latestFile;
+    }
     
     if (!fs.existsSync(dataPath)) {
       return NextResponse.json(
