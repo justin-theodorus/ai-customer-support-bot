@@ -118,19 +118,6 @@ Generate AI responses with RAG context:
 }
 ```
 
-### Search API
-**POST** `/api/search`
-
-Direct semantic search access:
-
-```typescript
-{
-  query: string,                      // Search query
-  topK?: number,                      // Number of results (default: 10)
-  category?: string,                  // Filter by category
-  searchType?: 'semantic' | 'category' | 'hybrid'
-}
-```
 
 ## 🎯 How RAG Works
 
@@ -191,25 +178,10 @@ src/
     └── utils.ts                   # Shared utilities
 ```
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
 
 ## 📝 License
 
 This project is licensed under the MIT License.
 
-## 🆘 Support
-
-For technical issues or questions:
-1. Review API endpoint responses at `/api/chat` and `/api/search`
-2. Check the browser console for detailed error messages
-3. Ensure all environment variables are properly configured
-
----
 
 Built with ❤️ using Next.js, OpenAI, and Pinecone
